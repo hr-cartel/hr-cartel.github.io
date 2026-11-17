@@ -42,7 +42,7 @@
     <form id="bookForm" novalidate autocomplete="on">
       <label class="f"><span>ПІБ *</span><input id="fName" name="name" autocomplete="name" maxlength="80" required><em class="err" data-for="name"></em></label>
       <label class="f"><span>Телефон * (+380…)</span><input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 123 45 67" required><em class="err" data-for="phone"></em></label>
-      <label class="f"><span>Вакансія, яка зацікавила *</span><input id="fVacancy" name="vacancy" maxlength="120" required><em class="err" data-for="vacancy"></em></label>
+      <label class="f"><span>Вакансія, яка зацікавила (необов’язково)</span><input id="fVacancy" name="vacancy" maxlength="120"><em class="err" data-for="vacancy"></em></label>
       <label class="f"><span>Пошта (необов’язково)</span><input id="fEmail" name="email" type="email" autocomplete="email" maxlength="120"><em class="err" data-for="email"></em></label>
       <label class="f"><span>Файл резюме (PDF, DOC, DOCX, до 5 МБ)</span><input id="fFile" name="file" type="file" accept=".pdf,.doc,.docx,application/pdf"><em class="err" data-for="file"></em></label>
       <label class="f"><span>Кілька слів про себе (необов’язково)</span><textarea id="fAbout" name="about" rows="3" maxlength="1000"></textarea></label>
@@ -61,7 +61,7 @@
     <form id="reqForm" novalidate>
       <label class="f"><span>ПІБ *</span><input id="rName" name="name" autocomplete="name" maxlength="80" required><em class="err" data-for="name"></em></label>
       <label class="f"><span>Телефон * (+380…)</span><input id="rPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 123 45 67" required><em class="err" data-for="phone"></em></label>
-      <label class="f"><span>Вакансія, яка зацікавила *</span><input id="rVacancy" name="vacancy" maxlength="120" required><em class="err" data-for="vacancy"></em></label>
+      <label class="f"><span>Вакансія, яка зацікавила (необов’язково)</span><input id="rVacancy" name="vacancy" maxlength="120"><em class="err" data-for="vacancy"></em></label>
       <label class="f"><span>Файл резюме (PDF, DOC, DOCX, до 5 МБ)</span><input id="rFile" name="file" type="file" accept=".pdf,.doc,.docx,application/pdf"><em class="err" data-for="file"></em></label>
       <label class="f"><span>Кілька слів про себе</span><textarea id="rAbout" name="about" rows="3" maxlength="1000"></textarea></label>
       <input id="rWebsite" name="website" class="trap" tabindex="-1" autocomplete="off" aria-hidden="true">
