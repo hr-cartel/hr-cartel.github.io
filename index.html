@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Запис на співбесіду</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1 id="title">Запис на співбесіду</h1>
+    <p id="subtitle" class="muted"></p>
+  </header>
+
+  <div id="demo" class="alert warn" hidden>Демо-режим: дані вигадані, запис нікуди не надсилається.</div>
+
+  <section id="mine" class="card" hidden>
+    <div class="eyebrow">Ваш запис</div>
+    <div id="mineWhen" class="big"></div>
+    <div class="row">
+      <button id="mineCancel" class="btn ghost" type="button">Скасувати запис</button>
+    </div>
+    <div id="mineMsg" class="note" role="status"></div>
+  </section>
+
+  <section id="vPick">
+    <h2>Оберіть день і час</h2>
+    <div id="days" class="days" role="tablist" aria-label="Дні"></div>
+    <div id="slots" class="slots" aria-live="polite"></div>
+    <div id="slotsLoading" class="muted" role="status">Завантажуємо вільний час…</div>
+    <div id="slotsEmpty" class="muted" hidden></div>
+    <button id="toRequest" class="btn ghost" type="button" hidden>Немає зручного часу</button>
+  </section>
+
+  <section id="vForm" hidden>
+    <button class="link" id="backFromForm" type="button">← Обрати інший час</button>
+    <h2 id="formWhen"></h2>
+    <form id="bookForm" novalidate autocomplete="on">
+      <label class="f"><span>ПІБ *</span><input id="fName" name="name" autocomplete="name" maxlength="80" required><em class="err" data-for="name"></em></label>
+      <label class="f"><span>Телефон * (+380…)</span><input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 123 45 67" required><em class="err" data-for="phone"></em></label>
+      <label class="f"><span>Вакансія, яка зацікавила *</span><input id="fVacancy" name="vacancy" maxlength="120" required><em class="err" data-for="vacancy"></em></label>
+      <label class="f"><span>Пошта (необов’язково)</span><input id="fEmail" name="email" type="email" autocomplete="email" maxlength="120"><em class="err" data-for="email"></em></label>
+      <label class="f"><span>Файл резюме (PDF, DOC, DOCX, до 5 МБ)</span><input id="fFile" name="file" type="file" accept=".pdf,.doc,.docx,application/pdf"><em class="err" data-for="file"></em></label>
+      <label class="f"><span>Кілька слів про себе (необов’язково)</span><textarea id="fAbout" name="about" rows="3" maxlength="1000"></textarea></label>
+      <input id="fWebsite" name="website" class="trap" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="cf" id="cfBook"></div>
+      <p class="note">Надсилаючи форму (разом із доданим файлом, якщо він є), ви погоджуєтеся на обробку вказаних даних для організації співбесіди. Дані та файли зберігаються обмежений час.</p>
+      <div id="formErr" class="alert bad" hidden role="alert"></div>
+      <button id="submitBook" class="btn" type="submit">Записатися</button>
+    </form>
+  </section>
+
+  <section id="vRequest" hidden>
+    <button class="link" id="backFromRequest" type="button">← До вибору часу</button>
+    <h2>Залишити заявку</h2>
+    <p class="muted">Розкажіть про себе, і менеджер зв’яжеться з вами.</p>
+    <form id="reqForm" novalidate>
+      <label class="f"><span>ПІБ *</span><input id="rName" name="name" autocomplete="name" maxlength="80" required><em class="err" data-for="name"></em></label>
+      <label class="f"><span>Телефон * (+380…)</span><input id="rPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+380 67 123 45 67" required><em class="err" data-for="phone"></em></label>
+      <label class="f"><span>Вакансія, яка зацікавила *</span><input id="rVacancy" name="vacancy" maxlength="120" required><em class="err" data-for="vacancy"></em></label>
+      <label class="f"><span>Файл резюме (PDF, DOC, DOCX, до 5 МБ)</span><input id="rFile" name="file" type="file" accept=".pdf,.doc,.docx,application/pdf"><em class="err" data-for="file"></em></label>
+      <label class="f"><span>Кілька слів про себе</span><textarea id="rAbout" name="about" rows="3" maxlength="1000"></textarea></label>
+      <input id="rWebsite" name="website" class="trap" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="cf" id="cfReq"></div>
+      <p class="note">Надсилаючи форму (разом із доданим файлом, якщо він є), ви погоджуєтеся на обробку вказаних даних. Дані та файли зберігаються обмежений час.</p>
+      <div id="reqErr" class="alert bad" hidden role="alert"></div>
+      <button id="submitReq" class="btn" type="submit">Надіслати заявку</button>
+    </form>
+  </section>
+
+  <section id="vDone" class="card center" hidden>
+    <div class="tick" aria-hidden="true">✓</div>
+    <h2 id="doneTitle">Ви записані</h2>
+    <div id="doneWhen" class="big"></div>
+    <div id="doneText" class="muted"></div>
+    <p id="doneMeet" class="note" hidden>Співбесіда відбудеться через Google Meet. Посилання на неї ми надішлемо вам у Viber або Telegram перед початком.</p>
+    <div id="doneLinkBox" hidden>
+      <p class="note">Збережіть це посилання: за ним можна відкрити запис і скасувати його з будь-якого пристрою.</p>
+      <div class="copy"><input id="doneLink" readonly><button id="copyBtn" class="btn ghost" type="button">Копіювати</button></div>
+      <button id="doneCancel" class="btn ghost" type="button">Скасувати запис</button>
+      <div id="doneMsg" class="note" role="status"></div>
+    </div>
+    <button id="doneBack" class="link" type="button">Повернутися до вибору часу</button>
+  </section>
+
+  <section id="vClosed" class="card center" hidden>
+    <h2>Запис тимчасово закритий</h2>
+    <p class="muted">Спробуйте пізніше або напишіть менеджеру.</p>
+  </section>
+</main>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
