@@ -222,7 +222,6 @@
     var phone = normPhone($('#fPhone').value);
     if ($('#fName').value.trim().length < 2) errs.name = 'Вкажіть ПІБ';
     if (!phone) errs.phone = 'Номер у форматі +380 XX XXX XX XX';
-    if ($('#fVacancy').value.trim().length < 2) errs.vacancy = 'Вкажіть вакансію';
     setErr(form, errs); box($('#formErr'), '');
     if (Object.keys(errs).length) return;
     if (CFG.TURNSTILE_SITEKEY && !state.captcha.book) { box($('#formErr'), 'Підтвердіть, що ви не робот.'); return; }
@@ -264,7 +263,6 @@
     var phone = normPhone($('#rPhone').value);
     if ($('#rName').value.trim().length < 2) errs.name = 'Вкажіть ПІБ';
     if (!phone) errs.phone = 'Номер у форматі +380 XX XXX XX XX';
-    if ($('#rVacancy').value.trim().length < 2) errs.vacancy = 'Вкажіть вакансію';
     setErr(form, errs); box($('#reqErr'), '');
     if (Object.keys(errs).length) return;
     if (CFG.TURNSTILE_SITEKEY && !state.captcha.req) { box($('#reqErr'), 'Підтвердіть, що ви не робот.'); return; }
