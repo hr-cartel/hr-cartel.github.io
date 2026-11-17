@@ -12,19 +12,64 @@
     return null;
   }
 
+  /* ---------- Журнал для диагностики (без личных данных) ---------- */
+  var T0 = Date.now();
+  var SID = (Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4)).replace(/[^a-z0-9]/g, '');
+  var LOGQ = [], logTimer = null;
+  function log(e, d) {
+    if (MOCK) return;
+    LOGQ.push({ e: e, t: Date.now() - T0, d: d === undefined ? '' : d });
+    if (LOGQ.length >= 15) flushLog(); else if (!logTimer) logTimer = setTimeout(flushLog, 4000);
+  }
+  function flushLog(useBeacon) {
+    if (logTimer) { clearTimeout(logTimer); logTimer = null; }
+    if (!LOGQ.length || MOCK) return;
+    var body = JSON.stringify({ action: 'log', sid: SID, events: LOGQ.splice(0, 25) });
+    try {
+      if (useBeacon && navigator.sendBeacon) { navigator.sendBeacon(CFG.API_URL, new Blob([body], { type: 'text/plain' })); return; }
+      fetch(CFG.API_URL, { method: 'POST', body: body, keepalive: true }).catch(function () { /* журнал не должен ломать сайт */ });
+    } catch (e) { /* то же */ }
+  }
+  function deviceInfo() {
+    var ua = navigator.userAgent || '';
+    var app = /Viber/i.test(ua) ? 'viber' : /Telegram/i.test(ua) ? 'telegram' : /FBAN|FBAV/i.test(ua) ? 'facebook' : /Instagram/i.test(ua) ? 'instagram' : /; wv\)|WebView/i.test(ua) ? 'webview' : 'browser';
+    var os = /Android/i.test(ua) ? 'android' : /iPhone|iPad|iPod/i.test(ua) ? 'ios' : /Windows/i.test(ua) ? 'windows' : /Mac/i.test(ua) ? 'mac' : 'other';
+    var br = /Edg\//.test(ua) ? 'edge' : /OPR\//.test(ua) ? 'opera' : /SamsungBrowser/i.test(ua) ? 'samsung' : /Firefox/i.test(ua) ? 'firefox' : /Chrome|CriOS/i.test(ua) ? 'chrome' : /Safari/i.test(ua) ? 'safari' : 'other';
+    var net = navigator.connection && navigator.connection.effectiveType || '';
+    return app + '/' + os + '/' + br + ' ' + window.innerWidth + 'x' + window.innerHeight + ' ' + (navigator.language || '') + (net ? ' ' + net : '') + ' | ' + ua.slice(0, 110);
+  }
+  window.addEventListener('error', function (ev) { log('js_error', String(ev.message || '') + ' @' + String(ev.filename || '').split('/').pop() + ':' + ev.lineno); });
+  window.addEventListener('unhandledrejection', function (ev) { log('js_reject', String(ev.reason && ev.reason.message || ev.reason || '').slice(0, 120)); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') { log('leave', Math.round((Date.now() - T0) / 1000) + 's'); flushLog(true); }
+  });
+
   /* ---------- API ---------- */
+  var API_TIMEOUT = 35000;
   function call(action, data) {
     if (MOCK) return mockApi(action, data);
-    var req;
+    var t0 = Date.now(), ctl = window.AbortController ? new AbortController() : null, timer = null, init = {}, req;
+    if (ctl) { init.signal = ctl.signal; timer = setTimeout(function () { ctl.abort(); }, API_TIMEOUT); }
     if (data === undefined) {
-      req = fetch(CFG.API_URL + '?action=' + encodeURIComponent(action));
+      req = fetch(CFG.API_URL + '?action=' + encodeURIComponent(action), init);
     } else if (action === 'booking') {
-      req = fetch(CFG.API_URL + '?action=booking&token=' + encodeURIComponent(data.token));
+      req = fetch(CFG.API_URL + '?action=booking&token=' + encodeURIComponent(data.token), init);
     } else {
       // text/plain, чтобы браузер не делал предварительный запрос (Apps Script его не поддерживает)
-      req = fetch(CFG.API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ action: action }, data)) });
+      init.method = 'POST'; init.body = JSON.stringify(Object.assign({ action: action }, data));
+      req = fetch(CFG.API_URL, init);
     }
-    return req.then(function (r) { return r.json(); }).catch(function () { return { ok: false, error: 'NETWORK' }; });
+    return req.then(function (r) { return r.json(); }).then(function (res) {
+      clearTimeout(timer);
+      var ms = Date.now() - t0;
+      log('api', action + ' ' + (res.ok ? 'ok' : (res.error || 'fail')) + ' ' + ms + 'ms');
+      return res;
+    }).catch(function (err) {
+      clearTimeout(timer);
+      var ms = Date.now() - t0, timeout = !!err && err.name === 'AbortError';
+      log(timeout ? 'api_timeout' : 'api_neterr', action + ' ' + ms + 'ms ' + String(err && err.message || err).slice(0, 60));
+      return { ok: false, error: timeout ? 'TIMEOUT' : 'NETWORK' };
+    });
   }
 
   /* ---------- Демо-режим ---------- */
@@ -112,6 +157,7 @@
     BUSY: 'Зараз багато звернень. Спробуйте за хвилину.',
     CAPTCHA: 'Не вдалося підтвердити, що ви не робот. Оновіть сторінку й спробуйте знову.',
     NETWORK: 'Немає зв’язку із сервером. Перевірте інтернет і спробуйте знову.',
+    TIMEOUT: 'Сервер відповідає надто довго. Зачекайте хвилину й перевірте блок «Ваш запис» угорі сторінки, потім спробуйте ще раз.',
     SERVER: 'Щось пішло не так. Спробуйте ще раз або зателефонуйте менеджеру.',
     FILE_TYPE: 'Підходять лише файли PDF, DOC, DOCX.',
     FILE_SIZE: 'Файл завеликий: максимум 5 МБ.',
@@ -153,8 +199,16 @@
     (function tryMount() {
       if (window.turnstile) {
         if (state.widgets[name] !== undefined) { window.turnstile.reset(state.widgets[name]); return; }
-        state.widgets[name] = window.turnstile.render(sel, { sitekey: CFG.TURNSTILE_SITEKEY, callback: function (t) { state.captcha[name] = t; }, 'expired-callback': function () { state.captcha[name] = ''; } });
+        var tc0 = Date.now();
+        state.widgets[name] = window.turnstile.render(sel, {
+          sitekey: CFG.TURNSTILE_SITEKEY,
+          callback: function (t) { state.captcha[name] = t; log('captcha_ok', name + ' ' + (Date.now() - tc0) + 'ms'); },
+          'expired-callback': function () { state.captcha[name] = ''; log('captcha_expired', name); },
+          'error-callback': function (c) { state.captcha[name] = ''; log('captcha_err', name + ' ' + c); },
+          'timeout-callback': function () { log('captcha_timeout', name); }
+        });
       } else if (tries++ < 50) setTimeout(tryMount, 200);
+      else log('captcha_noscript', name);
     })();
   }
   function resetCaptcha(name) {
@@ -202,6 +256,8 @@
       if (!state.day || state.order.indexOf(state.day) < 0) {
         state.day = state.order.filter(function (d) { return state.days[d].length; })[0] || state.order[0] || null;
       }
+      var total = 0; state.order.forEach(function (d) { total += state.days[d].length; });
+      log('slots_shown', state.order.length + ' days, ' + total + ' slots');
       renderDays(); renderSlots();
       $('#slotsEmpty').hidden = state.order.length > 0 && (state.days[state.day] || []).length > 0;
       if (!state.order.length) { $('#slotsEmpty').hidden = false; $('#slotsEmpty').textContent = 'Вільних днів поки немає. Залиште заявку.'; }
@@ -210,7 +266,7 @@
 
   /* ---------- Форма записи ---------- */
   function openForm(time) {
-    state.time = time; state.openedAt = Date.now();
+    state.time = time; state.openedAt = Date.now(); log('form_open');
     $('#formWhen').textContent = fullLabel(state.day, time);
     setErr($('#bookForm'), {}); box($('#formErr'), '');
     show('vForm'); loadTurnstile(); mountCaptcha('book', '#cfBook');
@@ -223,11 +279,11 @@
     if ($('#fName').value.trim().length < 2) errs.name = 'Вкажіть ПІБ';
     if (!phone) errs.phone = 'Номер у форматі +380 XX XXX XX XX';
     setErr(form, errs); box($('#formErr'), '');
-    if (Object.keys(errs).length) return;
-    if (CFG.TURNSTILE_SITEKEY && !state.captcha.book) { box($('#formErr'), 'Підтвердіть, що ви не робот.'); return; }
+    if (Object.keys(errs).length) { log('validation', Object.keys(errs).join(',')); return; }
+    if (CFG.TURNSTILE_SITEKEY && !state.captcha.book) { log('submit_no_captcha', 'book'); box($('#formErr'), 'Підтвердіть, що ви не робот.'); return; }
     var fileMsg = fileProblem($('#fFile').files[0]);
     if (fileMsg) { setErr(form, { file: fileMsg }); return; }
-    btn.disabled = true; btn.textContent = 'Записуємо…';
+    btn.disabled = true; btn.textContent = 'Записуємо…'; log('submit', 'book file=' + !!$('#fFile').files[0]);
     readFile($('#fFile')).catch(function () { return false; }).then(function (fileObj) {
       if (fileObj === false) { btn.disabled = false; btn.textContent = 'Записатися'; setErr(form, { file: 'Не вдалося прочитати файл.' }); return null; }
       return call('book', {
@@ -238,8 +294,9 @@
     }).then(function (res) {
       if (!res) return;
       btn.disabled = false; btn.textContent = 'Записатися';
-      if (res.ok) { onBooked(res.booking); return; }
+      if (res.ok) { log('book_ok'); onBooked(res.booking); return; }
       resetCaptcha('book');
+      log('book_fail', res.error + (res.error === 'VALIDATION' ? ' ' + Object.keys(res.fields || {}).join(',') : ''));
       if (res.error === 'VALIDATION') { setErr(form, res.fields); return; }
       box($('#formErr'), msgFor(res));
       if (res.error === 'TAKEN') loadSlots();
@@ -264,11 +321,11 @@
     if ($('#rName').value.trim().length < 2) errs.name = 'Вкажіть ПІБ';
     if (!phone) errs.phone = 'Номер у форматі +380 XX XXX XX XX';
     setErr(form, errs); box($('#reqErr'), '');
-    if (Object.keys(errs).length) return;
+    if (Object.keys(errs).length) { log('validation', 'req ' + Object.keys(errs).join(',')); return; }
     if (CFG.TURNSTILE_SITEKEY && !state.captcha.req) { box($('#reqErr'), 'Підтвердіть, що ви не робот.'); return; }
     var fileMsg = fileProblem($('#rFile').files[0]);
     if (fileMsg) { setErr(form, { file: fileMsg }); return; }
-    btn.disabled = true; btn.textContent = 'Надсилаємо…';
+    btn.disabled = true; btn.textContent = 'Надсилаємо…'; log('submit', 'request file=' + !!$('#rFile').files[0]);
     readFile($('#rFile')).catch(function () { return false; }).then(function (fileObj) {
       if (fileObj === false) { btn.disabled = false; btn.textContent = 'Надіслати заявку'; setErr(form, { file: 'Не вдалося прочитати файл.' }); return null; }
       return call('request', {
@@ -287,6 +344,7 @@
         show('vDone'); return;
       }
       resetCaptcha('req');
+      log('request_fail', res.error);
       if (res.error === 'VALIDATION') { setErr(form, res.fields); return; }
       box($('#reqErr'), msgFor(res));
     });
@@ -305,15 +363,17 @@
     });
   }
   function cancel(btn, msgEl, done) {
-    if (!state.token) return;
+    if (!state.token || btn.disabled) return;
     if (btn.dataset.armed !== '1') {
-      btn.dataset.armed = '1'; btn.textContent = 'Точно скасувати?';
-      setTimeout(function () { btn.dataset.armed = ''; btn.textContent = 'Скасувати запис'; }, 5000);
+      btn.dataset.armed = '1'; btn.textContent = 'Точно скасувати?'; log('cancel_arm');
+      setTimeout(function () { if (!btn.disabled) { btn.dataset.armed = ''; btn.textContent = 'Скасувати запис'; } }, 5000);
       return;
     }
-    btn.disabled = true;
+    btn.disabled = true; btn.textContent = 'Скасовуємо…'; box(msgEl, '');
+    var t0 = Date.now(); log('cancel_send');
     call('cancel', { token: state.token }).then(function (res) {
       btn.disabled = false; btn.dataset.armed = ''; btn.textContent = 'Скасувати запис';
+      log(res.ok ? 'cancel_ok' : 'cancel_fail', (res.error || '') + ' ' + (Date.now() - t0) + 'ms');
       if (res.ok) { store(KEY, null); state.token = null; box(msgEl, ''); done(); loadSlots(); }
       else box(msgEl, res.error === 'NOT_FOUND' ? 'Запис уже скасовано або не знайдено.' : msgFor(res));
     });
@@ -322,6 +382,7 @@
   /* ---------- Запуск ---------- */
   function init() {
     if (MOCK) $('#demo').hidden = false;
+    log('open', deviceInfo());
     var m = /#b=([0-9a-zA-Z-]{20,60})/.exec(location.hash);
     if (m) { store(KEY, m[1]); }
     call('config').then(function (c) {
@@ -344,7 +405,7 @@
     $('#mineCancel').addEventListener('click', function () { cancel($('#mineCancel'), $('#mineMsg'), function () { $('#mine').hidden = true; }); });
     $('#doneCancel').addEventListener('click', function () { cancel($('#doneCancel'), $('#doneMsg'), function () { $('#doneLinkBox').hidden = true; $('#doneMeet').hidden = true; $('#doneTitle').textContent = 'Запис скасовано'; $('#doneWhen').textContent = ''; $('#doneText').textContent = 'Ви можете обрати інший час.'; refreshMine(); }); });
     $('#copyBtn').addEventListener('click', function () {
-      var inp = $('#doneLink'); inp.select();
+      log('copy_link'); var inp = $('#doneLink'); inp.select();
       var ok = function () { $('#copyBtn').textContent = 'Скопійовано'; setTimeout(function () { $('#copyBtn').textContent = 'Копіювати'; }, 1500); };
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(inp.value).then(ok, function () { document.execCommand && document.execCommand('copy'); ok(); });
       else { try { document.execCommand('copy'); ok(); } catch (e) { /* ссылка выделена, можно скопировать вручную */ } }
