@@ -137,6 +137,7 @@
   function fullLabel(day, time) { return fFull.format(dateOf(day)) + ', ' + time; }
   function show(id) {
     ['vPick', 'vForm', 'vRequest', 'vDone', 'vClosed'].forEach(function (v) { $('#' + v).hidden = v !== id; });
+    $('#card').setAttribute('data-step', id === 'vDone' ? '3' : (id === 'vForm' || id === 'vRequest') ? '2' : '1');
     window.scrollTo(0, 0);
   }
   function setErr(form, errors) {
