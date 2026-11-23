@@ -44,9 +44,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .link{background:none;border:0;color:var(--accent);font:500 14px var(--font-body);padding:0;cursor:pointer;text-align:left;align-self:flex-start}
 .f{display:flex;flex-direction:column;gap:4px;font-size:14px}
 .f span{color:var(--muted);font-size:13px}
-.f input,.f textarea,.copy input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+.f input,.f textarea,.copy input{font:inherit;font-size:16px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
 .f input[aria-invalid="true"],.f textarea[aria-invalid="true"]{border-color:var(--bad)}
-.f input[type="file"]{padding:8px;font-size:14px}
+.f input[type="file"]{padding:8px;font-size:16px}
 .err{font-style:normal;font-size:12px;color:var(--bad);min-height:0}
 form{display:flex;flex-direction:column;gap:12px}
 .trap{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
@@ -59,3 +59,25 @@ form{display:flex;flex-direction:column;gap:12px}
 #vDone>div{max-width:100%}
 #doneLinkBox{display:flex;flex-direction:column;gap:10px;width:100%;align-items:center}
 @media (prefers-reduced-motion:no-preference){.slot,.btn,.day{transition:background .15s,color .15s}}
+/* планшети і ПК */
+@media (min-width:768px){
+  .wrap{max-width:720px;padding:40px 24px 80px;gap:24px}
+  h1{font-size:32px}
+  h2{font-size:22px}
+  .card{padding:24px}
+  .slots{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+  .slot{padding:12px 0;font-size:16px}
+  .day{min-width:76px;padding:10px 12px}
+  .days{flex-wrap:wrap;overflow-x:visible}
+  form{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  form>*{grid-column:1/-1}
+  form>.f:not(:has(textarea)):not(:has(input[type="file"])){grid-column:auto}
+  .btn{width:auto;min-width:220px;justify-self:start}
+  #toRequest{align-self:flex-start}
+  .slot:hover,.day:hover,.btn:hover{filter:brightness(.96)}
+}
+@media (min-width:1200px){
+  .wrap{max-width:800px;padding-top:56px}
+  h1{font-size:36px}
+}
+@media (max-width:360px){.wrap{padding-left:12px;padding-right:12px}.slots{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}}
