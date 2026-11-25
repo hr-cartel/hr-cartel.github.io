@@ -234,6 +234,11 @@
   }
   function renderSlots() {
     var wrap = $('#slots'), empty = $('#slotsEmpty'); wrap.textContent = '';
+    if (!state.day) {
+      empty.hidden = !state.order.length;
+      empty.textContent = state.order.length ? 'Оберіть день, щоб побачити вільний час.' : '';
+      return;
+    }
     var list = state.days[state.day] || [];
     empty.hidden = list.length > 0;
     empty.textContent = list.length ? '' : 'На цей день вільного часу немає. Оберіть інший день або залиште заявку.';
@@ -255,12 +260,11 @@
       state.lunch = res.lunch || [];
       state.order = Object.keys(state.days).sort();
       if (!state.day || state.order.indexOf(state.day) < 0) {
-        state.day = state.order.filter(function (d) { return state.days[d].length; })[0] || state.order[0] || null;
+        state.day = null;
       }
       var total = 0; state.order.forEach(function (d) { total += state.days[d].length; });
       log('slots_shown', state.order.length + ' days, ' + total + ' slots');
       renderDays(); renderSlots();
-      $('#slotsEmpty').hidden = state.order.length > 0 && (state.days[state.day] || []).length > 0;
       if (!state.order.length) { $('#slotsEmpty').hidden = false; $('#slotsEmpty').textContent = 'Вільних днів поки немає. Залиште заявку.'; }
     });
   }
